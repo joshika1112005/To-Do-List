@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Food Order To-Do List</title>
+  <style>
+    
+    body {
+      padding: 0;
+      background-image: url('https://growthkitchen.co/wp-content/uploads/2022/05/collection.jpg');
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
+    
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      text-align: left;
+ color: White;
+    }
+    ul {
+      list-style-type: none;
+      padding: 0;
+    }
+    li {
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+    }
+    input[type="text"] {
+      width: 30%;
+      padding: 8px;
+      margin-right: 10px;
+    }
+    select {
+      padding: 8px;
+      margin-right: 10px;
+    }
+    button {
+      padding: 8px 15px;
+      margin-right: 10px;
+      background-color: #654321 ;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #45a049;
+    }
+    .red {
+      color: red;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Food Order To-Do List</h1>
+  
+  <div>
+    <input type="text" id="taskInput" placeholder="Enter food item...">
+<br>
+<br>
+    <input type="text" id="specInput" placeholder="Enter specifications...">
+<br>
+<br>
+    <select id="prioritySelect">
+      <option value="Low">Low Priority</option>
+      <option value="Medium">Medium Priority</option>
+      <option value="High">High Priority</option>
+    </select>
+<br>
+<br>
+    <input type="datetime-local" id="deadlineInput">
+<br>
+<br>
+    <button onclick="addTask()">Add</button>
+    <button onclick="clearCompleted()">Clear Completed</button>
+  </div>
+  <br>
+  <div>
+    <label for="filterPriority" style="color: white;">Filter by Priority:</label>
+    <select id="filterPriority" onchange="filterTasks()">
+<br>
+      <option value="All">All</option>
+      <option value="Low">Low Priority</option>
+      <option value="Medium">Medium Priority</option>
+      <option value="High">High Priority</option>
+    </select>
+<br>
+<br>
+    <span id="pendingTasks" style="color: white;">Pending tasks: <strong>0</strong></span>
+  </div>
+<br>
+<br>
+  <div>
+    <button onclick="sortByDeadline()">Sort by Deadline</button>
+  </div>
+
+  <ul id="taskList"></ul>
+
+  <script>
+    let tasks = [];
+
+    function addTask() {
+      const taskInput = document.getElementById('taskInput');
+      const specInput = document.getElementById('specInput');
+      const prioritySelect = document.getElementById('prioritySelect');
+      const deadlineInput = document.getElementById('deadlineInput');
+      const taskList = document.getElementById('taskList');
+
+      const task = taskInput.value.trim();
+      const specifications = specInput.value.trim();
+      const priority = prioritySelect.value;
+      const deadline = new Date(deadlineInput.value).toISOString();
+      
+      if (task !== '') {
+        const newTask = { task, specifications, priority, deadline, completed: false };
+        tasks.push(newTask);
+        renderTasks();
+        taskInput.value = '';
+        specInput.value = '';
+        prioritySelect.value = 'Low';
+        deadlineInput.value = '';
+        updatePendingTasks();
+        notifyDeadline(newTask);
+      } else {
+        alert('Please enter a food item.');
+      }
+    }
+
+    function renderTasks() {
+      const taskList = document.getElementById('taskList');
+      taskList.innerHTML = '';
+      
+      tasks.forEach((task, index) => {
+        const listItem = document.createElement('li');
+        const taskDeadline = new Date(task.deadline).toLocaleString();
+        listItem.innerHTML = `
+          <input type="checkbox" onchange="toggleCompletion(${index})" ${task.completed ? 'checked' : ''}>
+          <span><strong>${task.task}</strong> - ${task.specifications} - Priority: ${task.priority} - Deadline: ${taskDeadline}</span>
+          <button onclick="deleteTask(${index})">Delete</button>
+        `;
+        taskList.appendChild(listItem);
+      });
+    }
+
+    function toggleCompletion(index) {
+      tasks[index].completed = !tasks[index].completed;
+      renderTasks();
+      updatePendingTasks();
+    }
+
+    function deleteTask(index) {
+      tasks.splice(index, 1);
+      renderTasks();
+      updatePendingTasks();
+    }
+
+    function filterTasks() {
+      const filterPriority = document.getElementById('filterPriority').value;
+      if (filterPriority === 'All') {
+        renderTasks();
+      } else {
+        const filteredTasks = tasks.filter(task => task.priority === filterPriority);
+        const taskList = document.getElementById('taskList');
+        taskList.innerHTML = '';
+        filteredTasks.forEach((task, index) => {
+          const listItem = document.createElement('li');
+          const taskDeadline = new Date(task.deadline).toLocaleString();
+          listItem.innerHTML = `
+            <input type="checkbox" onchange="toggleCompletion(${index})" ${task.completed ? 'checked' : ''}>
+            <span><strong>${task.task}</strong> - ${task.specifications} - Priority: ${task.priority} - Deadline: ${taskDeadline}</span>
+            <button onclick="deleteTask(${index})">Delete</button>
+          `;
+          taskList.appendChild(listItem);
+        });
+      }
+      updatePendingTasks();
+    }
+
+    function clearCompleted() {
+      tasks = tasks.filter(task => !task.completed);
+      renderTasks();
+      updatePendingTasks();
+    }
+
+    function updatePendingTasks() {
+      const pendingCount = tasks.filter(task => !task.completed).length;
+      document.getElementById('pendingTasks').innerHTML = `Pending tasks: <strong>${pendingCount}</strong>`;
+    }
+
+    function sortByDeadline() {
+      tasks.sort((a, b) => {
+        return new Date(a.deadline) - new Date(b.deadline);
+      });
+      renderTasks();
+    }
+
+    function notifyDeadline(task) {
+      const currentTime = new Date();
+      const taskDeadline = new Date(task.deadline);
+      const timeDiff = taskDeadline - currentTime;
+
+      if (timeDiff > 0 && timeDiff <= 600000) { // Notify if deadline is within next 10 minutes (600000 milliseconds)
+        const notificationMessage = `⚠️ Deadline approaching for ${task.task} - ${task.specifications} - Priority: ${task.priority}`;
+        alert(notificationMessage);
+      }
+    }
+
+    // Initial rendering
+    renderTasks();
+    updatePendingTasks();
+  </script>
+</body>
+</html>
